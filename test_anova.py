@@ -23,7 +23,6 @@ tukey_hsd_houses = pairwise_tukeyhsd(
     alpha=0.05
 )
 
-print("Tukey HSD result for houses:\n", tukey_hsd_houses)
 
 # Perform ANOVA test for property_type = "unit" based on the number of bedrooms
 unit_prices = df[df['property_type'] == 'unit']
