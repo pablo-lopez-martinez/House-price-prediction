@@ -11,7 +11,7 @@ def load_data():
 
 
 @st.cache_data
-def filter_data(data, granularity, property_type):
+def filter_data(data, granularity, property_type, num_rooms):
     data_filtered = data.copy()
 
     #Rename date sold column 
@@ -19,6 +19,9 @@ def filter_data(data, granularity, property_type):
 
     #Filter by property type
     data_filtered = data_filtered[data_filtered['property_type'].isin(property_type)]
+
+    #Filter by number of rooms
+    data_filtered = data_filtered[data_filtered['bedrooms'].isin(num_rooms)]
 
     # Reduce table
     data_filtered = data_filtered[['time', 'price']]
