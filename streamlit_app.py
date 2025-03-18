@@ -92,14 +92,12 @@ if property_types and num_rooms:
     st.write("\n" * 5)
 
     # Select the granularity of the graph 
-    granularity = st.selectbox("Select the time unit of the graph", ["Day", "Week", "Month", "Year"])
+    granularity = st.selectbox("Select the time unit of the graph", ["Month", "Quarter", "Year"])
     st.write("\n" * 5)
 
     # Calculate the steps based on the granularity 
-    if granularity == "Day":
-        steps = (selected_date - today).days
-    elif granularity == "Week":
-        steps = (selected_date - today).days // 7
+    if granularity == "Quarter":
+        steps = (selected_date.year - today.year) * 4 + (selected_date.month - today.month) // 3
     elif granularity == "Month":
         steps = (selected_date.year - today.year) * 12 + selected_date.month - today.month
     elif granularity == "Year":

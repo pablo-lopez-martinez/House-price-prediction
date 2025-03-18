@@ -55,13 +55,11 @@ def make_prediction(data, steps, granularity):
     model = Prophet()
     model.fit(data)
     
-    # Make prediction
-    if granularity == "Day":
-        future = model.make_future_dataframe(periods=steps, freq='D')
-    elif granularity == "Week":
-        future = model.make_future_dataframe(periods=steps, freq='W')
-    elif granularity == "Month":
+
+    if granularity == "Month":
         future = model.make_future_dataframe(periods=steps, freq='M')
+    if granularity == "Quarter":
+        future = model.make_future_dataframe(periods=steps, freq='Q')
     elif granularity == "Year":
         future = model.make_future_dataframe(periods=steps, freq='Y')
 
@@ -78,12 +76,10 @@ def make_prediction(data, steps, granularity):
 def prediction_graph(historical_data, future_data, granularity):
     
     # Group historical data by granularity 
-    if granularity == "Day":
-        historical_data['time'] = historical_data['time']
-    elif granularity == "Week":
-        historical_data['time'] = historical_data['time'].dt.to_period('W').dt.to_timestamp()
-    elif granularity == "Month":
+    if granularity == "Month":
         historical_data['time'] = historical_data['time'].dt.to_period('M').dt.to_timestamp()
+    elif granularity == "Quarter":
+        historical_data['time'] = historical_data['time'].dt.to_period('Q').dt.to_timestamp()
     elif granularity == "Year":
         historical_data['time'] = historical_data['time'].dt.to_period('Y').dt.to_timestamp()
 
