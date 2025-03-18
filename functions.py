@@ -11,7 +11,7 @@ def load_data():
 
 
 @st.cache_data
-def filter_data(data, granularity, property_type, num_rooms):
+def filter_data(data, property_type, num_rooms):
     data_filtered = data.copy()
 
     #Rename date sold column 
@@ -34,15 +34,9 @@ def filter_data(data, granularity, property_type, num_rooms):
     data_filtered = data_filtered.set_index('time').reindex(date_range).interpolate().reset_index()
     data_filtered.rename(columns={'index': 'time'}, inplace=True)
     
-    # Time granularity
-    if granularity == "Day":
-        data_filtered['time'] = data_filtered['time']
-    elif granularity == "Week":
-        data_filtered['time'] = data_filtered['time'].dt.to_period('W').dt.to_timestamp()
-    elif granularity == "Month":
-        data_filtered['time'] = data_filtered['time'].dt.to_period('M').dt.to_timestamp()
-    elif granularity == "Year":
-        data_filtered['time'] = data_filtered['time'].dt.to_period('Y').dt.to_timestamp()
+   # Month prices
+    data_filtered['time'] = data_filtered['time'].dt.to_period('M').dt.to_timestamp()
+
 
     # Group by granularity
     data_filtered = data_filtered.groupby(['time'], sort=False).mean().reset_index()
@@ -81,8 +75,20 @@ def make_prediction(data, steps, granularity):
     return forecast[['time', 'price', 'lowest price', 'highest price']].tail(steps)
 
 
-def prediction_graph(historical_data, future_data):
+def prediction_graph(historical_data, future_data, granularity):
     
+    # Group historical data by granularity 
+    if granularity == "Day":
+        historical_data['time'] = historical_data['time']
+    elif granularity == "Week":
+        historical_data['time'] = historical_data['time'].dt.to_period('W').dt.to_timestamp()
+    elif granularity == "Month":
+        historical_data['time'] = historical_data['time'].dt.to_period('M').dt.to_timestamp()
+    elif granularity == "Year":
+        historical_data['time'] = historical_data['time'].dt.to_period('Y').dt.to_timestamp()
+
+    historical_data = historical_data.groupby(['time'], sort=False).mean().reset_index()
+
     # Combine historical and future data
     historical_data['type'] = 'Historical'
     future_data['type'] = 'Future'

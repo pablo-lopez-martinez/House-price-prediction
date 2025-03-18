@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from functions import load_data, filter_data, make_prediction, prediction_graph
-import altair as alt
 
 # Header
 st.title("Property Sales Data Prediction")
@@ -26,18 +24,18 @@ with col2:
     property_types = [property.lower() for property in property_types]
 with col3:
     if "house" in property_types and "unit" not in property_types:
-        num_rooms = st.multiselect("Select number of rooms", options=[3, 4, 5], default=[3])
+        num_rooms = st.multiselect("Select number of rooms", options=[2, 3, 4, 5], default=[2,3,4,5])
     elif "unit" in property_types and "house" not in property_types:
-        num_rooms = st.multiselect("Select number of rooms", options=[1, 2], default=[1])
+        num_rooms = st.multiselect("Select number of rooms", options=[1, 2, 3], default=[1,2,3])
     else:
-        num_rooms = st.multiselect("Select number of rooms", options=[1, 2, 3, 4, 5], default=[1])
+        num_rooms = st.multiselect("Select number of rooms", options=[1, 2, 3, 4, 5], default=[1,2,3,4,5])
 
 
 st.write("\n" * 5)
 
 #Time parameters
 today = pd.Timestamp("2019-07-26 00:00:00")     
-selected_year = st.number_input("Select a year to predict into the future", min_value=today.year + 1, max_value=today.year + 20, step=1)
+selected_year = st.number_input("Select a year to predict into the future", min_value=today.year+1, max_value=today.year + 20, step=1) 
 
 
 #Prediction
@@ -49,12 +47,12 @@ with col1:
 
 st.write("\n" * 5)
 
-if property_types:
+if property_types and num_rooms:
     # Data transformation
-    data_filtered = filter_data(raw_data, "Month", property_types, num_rooms)
+    data_filtered = filter_data(raw_data, property_types, num_rooms)
 
     # Make prediction
-    today = pd.Timestamp("2019-07-26 00:00:00")
+    today = data_filtered['time'].max()
     selected_date = pd.Timestamp(year=selected_year, month=12, day=31)
     steps = (selected_date.year - today.year) * 12 + selected_date.month - today.month
     future_price_KPI = make_prediction(data_filtered, steps, "Month")
@@ -105,13 +103,12 @@ if property_types:
     elif granularity == "Month":
         steps = (selected_date.year - today.year) * 12 + selected_date.month - today.month
     elif granularity == "Year":
-        steps = selected_date.year - today
+        steps = selected_date.year - today.year
 
-    future_price_graph = make_prediction(data_filtered, steps, granularity)
 
     # Make prediction
     future_price_graph = make_prediction(data_filtered, steps, granularity)
-    final_chart = prediction_graph(data_filtered, future_price_graph)
+    final_chart = prediction_graph(data_filtered, future_price_graph, granularity)
 
     # Display the chart in Streamlit
     st.altair_chart(final_chart, use_container_width=True)
