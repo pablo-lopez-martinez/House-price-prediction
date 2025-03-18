@@ -107,8 +107,8 @@ if property_types and num_rooms:
     # Make prediction
     future_price_graph = make_prediction(data_filtered, steps, granularity)
     final_chart = prediction_graph(data_filtered, future_price_graph, granularity)
-
-    # Display the chart in Streamlit
+    
+    #Display 
     st.altair_chart(final_chart, use_container_width=True)
 
     if st.button("Send balloons!"):
