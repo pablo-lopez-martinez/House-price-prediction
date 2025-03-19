@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-from functions import load_data, filter_data, make_prediction, prediction_graph
+from functions import filter_data, make_prediction, prediction_graph
+from resource_manager import ResourceManager
 
 # Header
 st.title("Property Sales Data Prediction")
@@ -9,7 +10,7 @@ st.write("\n")
 
 # Load data
 
-raw_data = load_data()
+raw_data = ResourceManager.load_data()
 
 # Input data
 st.subheader("Find out the best time to buy or sell a property")

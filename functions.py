@@ -4,25 +4,22 @@ from prophet import Prophet
 import altair as alt
 
 
-@st.cache_data
-def load_data():
-    data = pd.read_csv("dataset/property_sales.csv", parse_dates=['date_sold'])
-    return data
-
 
 @st.cache_data
-def filter_data(data, property_type, num_rooms):
-    data_filtered = data.copy()
-
-    #Rename date sold column 
-    data_filtered.rename(columns={'date_sold': 'time'}, inplace=True)
+def filter_data(data_filtered, property_type, num_rooms):
+    
+    # Rename date sold column 
+    data_filtered.rename(columns={'datesold': 'time'}, inplace=True)
 
     #Filter by property type
     data_filtered = data_filtered[data_filtered['property_type'].isin(property_type)]
-
+    # Debugging: Print the DataFrame structure after renaming
+    print("DataFrame after renaming and filtering:")
+    print(data_filtered.head())
     #Filter by number of rooms
     data_filtered = data_filtered[data_filtered['bedrooms'].isin(num_rooms)]
 
+    print(data_filtered.head())
     # Reduce table
     data_filtered = data_filtered[['time', 'price']]
     
@@ -46,7 +43,7 @@ def filter_data(data, property_type, num_rooms):
         
     return data_filtered
 
-
+@st.cache_data
 def make_prediction(data, steps, granularity):
     # Prepare data
     data = data.rename(columns={'time': 'ds', 'price': 'y'})
@@ -73,7 +70,7 @@ def make_prediction(data, steps, granularity):
     return forecast[['time', 'price', 'lowest price', 'highest price']].tail(steps)
 
 
-
+@st.cache_data
 def prediction_graph(historical_data, future_data, granularity):
     
     # Convertir las fechas según la granularidad seleccionada
