@@ -1,22 +1,37 @@
 import streamlit as st
 import pandas as pd
-from functions import filter_data, make_prediction, prediction_graph
-from resource_manager import ResourceManager
+from data_manipulation import filter_data, make_prediction, prediction_graph
+from database_manager import DatabaseManager
+
+
+if "form_complete" not in st.session_state:
+    st.session_state["form_complete"] = False
+
+if "user_registered" not in st.session_state:
+    st.session_state["user_registered"] = False
+
+def update_form_state():
+    st.session_state["form_complete"] = all([
+        st.session_state.get("property_type"),
+        st.session_state.get("price"),
+        st.session_state.get("postcode"),
+        st.session_state.get("bedrooms"),
+        st.session_state.get("datesold"),
+    ])
+
+
+
 
 # Header
 st.title("Property Sales Data Prediction")
-# Add line breaks and spaces between paragraphs
-st.write("\n")
 
-# Load data
 
-raw_data = ResourceManager.load_data()
+st.write("\n" * 10)
+st.write("\n" * 10)
 
-# Input data
-st.subheader("Find out the best time to buy or sell a property")
-st.write("\n" * 5)
 
-col1, col2, col3 = st.columns(3)
+# Enter parameters
+col1, col2, empty, col3 = st.columns([1, 1, 0.25, 1])
 
 with col1:
     action = st.radio("Do you want to buy or sell?", ["Buy", "Sell"])
@@ -32,21 +47,30 @@ with col3:
         num_rooms = st.multiselect("Select number of rooms", options=[1, 2, 3, 4, 5], default=[1,2,3,4,5])
 
 
-st.write("\n" * 5)
+st.write("\n" * 10)
+st.write("\n" * 10)
 
-#Time parameters
+
+# Load data
+raw_data = DatabaseManager.load_data()
+
+# Time parameters
 today = pd.Timestamp("2019-07-26 00:00:00")     
 selected_year = st.number_input("Select a year to predict into the future", min_value=today.year+1, max_value=today.year + 20, step=1) 
 
 
-#Prediction
 st.write("\n" * 5)
+
+
+# Prediction
 col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Prediction")
 
+
 st.write("\n" * 5)
+
 
 if property_types and num_rooms:
     # Data transformation
@@ -104,15 +128,54 @@ if property_types and num_rooms:
     elif granularity == "Year":
         steps = selected_date.year - today.year
 
-
     # Make prediction
     future_price_graph = make_prediction(data_filtered, steps, granularity)
     final_chart = prediction_graph(data_filtered, future_price_graph, granularity)
     
-    #Display 
+    # Display 
     st.altair_chart(final_chart, use_container_width=True)
-
-    if st.button("Send balloons!"):
-        st.balloons()
+    
 else:
     st.write("Please select a property type to make a prediction.")
+
+
+
+st.write("\n" * 5)
+
+
+# Form to add a new property
+with st.expander("➕ Add a new property sale record"):
+    with st.form("property_form"):
+        st.write("Enter the property details")
+
+        # Form fields
+        property_type = st.selectbox("Property Type", ["House", "Unit"])
+        price = st.number_input("Sale Price ($)", min_value=10000, step=5000, format="%d")
+        postcode = st.text_input("Postcode", value="", max_chars=5)
+        if postcode and not postcode.isdigit():
+            st.warning("Postcode must be numeric.")
+        bedrooms = st.number_input("Number of Bedrooms", min_value=1, max_value=5, step=1)
+        date_sold = st.date_input("Date Sold", min_value=pd.Timestamp("2007-02-07"), max_value=today)
+
+        # Submit button
+        if st.form_submit_button("Submit"):
+            # Comprobar si todos los campos están completos
+            if all([property_type, price, postcode, bedrooms, date_sold]) and postcode.isdigit():
+                st.session_state["form_complete"] = True
+
+                #Data to add 
+                new_entry = {
+                    "property_type": property_type.lower(),
+                    "price": price,
+                    "postcode": postcode,
+                    "bedrooms": bedrooms,
+                    "date_sold": date_sold.strftime("%Y-%m-%d"),
+                    }
+                
+                DatabaseManager.insert_sale(new_entry)
+                st.success("Form successfully submitted!")
+            else:
+                st.session_state["form_complete"] = False
+                st.warning("Please fill in all fields before submitting.")
+
+

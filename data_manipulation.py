@@ -11,15 +11,12 @@ def filter_data(data_filtered, property_type, num_rooms):
     # Rename date sold column 
     data_filtered.rename(columns={'datesold': 'time'}, inplace=True)
 
-    #Filter by property type
+    # Filter by property type
     data_filtered = data_filtered[data_filtered['property_type'].isin(property_type)]
-    # Debugging: Print the DataFrame structure after renaming
-    print("DataFrame after renaming and filtering:")
-    print(data_filtered.head())
-    #Filter by number of rooms
+    
+    # Filter by number of rooms
     data_filtered = data_filtered[data_filtered['bedrooms'].isin(num_rooms)]
 
-    print(data_filtered.head())
     # Reduce table
     data_filtered = data_filtered[['time', 'price']]
     
@@ -31,9 +28,8 @@ def filter_data(data_filtered, property_type, num_rooms):
     data_filtered = data_filtered.set_index('time').reindex(date_range).interpolate().reset_index()
     data_filtered.rename(columns={'index': 'time'}, inplace=True)
     
-   # Month prices
+    # Monthly prices
     data_filtered['time'] = data_filtered['time'].dt.to_period('M').dt.to_timestamp()
-
 
     # Group by granularity
     data_filtered = data_filtered.groupby(['time'], sort=False).mean().reset_index()
@@ -52,7 +48,7 @@ def make_prediction(data, steps, granularity):
     model = Prophet()
     model.fit(data)
     
-
+    # Create future dataframe based on granularity
     if granularity == "Month":
         future = model.make_future_dataframe(periods=steps, freq='M')
     if granularity == "Quarter":
@@ -73,38 +69,38 @@ def make_prediction(data, steps, granularity):
 @st.cache_data
 def prediction_graph(historical_data, future_data, granularity):
     
-    # Convertir las fechas según la granularidad seleccionada
+    # Convert dates according to the selected granularity
     if granularity == "Month":
-        historical_data['time'] = historical_data['time'].dt.to_period('M').dt.to_timestamp()  # Mes
-        x_axis_format = '%b %Y'  # Formato de mes en letras (e.g., Jan 2023)
+        historical_data['time'] = historical_data['time'].dt.to_period('M').dt.to_timestamp()  # Month
+        x_axis_format = '%b %Y'  # Month format (e.g., Jan 2023)
     elif granularity == "Quarter":
-        historical_data['time'] = historical_data['time'].dt.to_period('Q').dt.to_timestamp()  # Trimestre
-        x_axis_format = '%Y-Q%q'  # Formato de trimestre
+        historical_data['time'] = historical_data['time'].dt.to_period('Q').dt.to_timestamp()  # Quarter
+        x_axis_format = '%Y-Q%q'  # Quarter format
     elif granularity == "Year":
-        historical_data['time'] = historical_data['time'].dt.to_period('Y').dt.to_timestamp()  # Año
-        x_axis_format = '%Y'  # Formato de año
+        historical_data['time'] = historical_data['time'].dt.to_period('Y').dt.to_timestamp()  # Year
+        x_axis_format = '%Y'  # Year format
 
-    # Agrupar datos históricos por el tiempo ajustado según granularidad
+    # Group historical data by adjusted time according to granularity
     historical_data = historical_data.groupby(['time'], sort=False).mean().reset_index()
-
-    # Combinar datos históricos y futuros
+    
+    # Combine historical and future data
     historical_data['type'] = 'Historical'
     future_data['type'] = 'Future'
     combined_data = pd.concat([historical_data, future_data])
 
-    # Crear gráfico de Altair para las líneas de datos históricos y futuros con diferentes colores
+    # Create Altair chart for historical and future data lines with different colors
     line_chart = alt.Chart(combined_data).mark_line().encode(
         x=alt.X('time:T', title='Time', 
                 axis=alt.Axis(
-                    format=x_axis_format,  # Mostrar según el formato ajustado
-                    labelAngle=45  # Rotar las etiquetas del eje X si es necesario
+                    format=x_axis_format,  # Display according to adjusted format
+                    labelAngle=45  # Rotate X-axis labels if necessary
                 )),
         y='price:Q',
-        color=alt.Color('type:N', scale=alt.Scale(domain=['Historical', 'Future'], range=['#FF6347', '#FFFF00'])),  # Rojo para histórico, amarillo para futuro
+        color=alt.Color('type:N', scale=alt.Scale(domain=['Historical', 'Future'], range=['#FF6347', '#FFFF00'])),  # Red for historical, yellow for future
         tooltip=['time:T', 'price:Q', 'type:N']
     )
 
-    # Agregar área de intervalo de confianza para los datos futuros
+    # Add confidence interval area for future data
     confidence_area = alt.Chart(future_data).mark_area(
         opacity=0.3,
         color='lightblue'
@@ -114,7 +110,5 @@ def prediction_graph(historical_data, future_data, granularity):
         y2='highest price:Q'
     )
 
-    # Combinar las líneas de datos históricos y futuros con el área de confianza
+    # Combine historical and future data lines with confidence interval area
     return line_chart + confidence_area
-
-
