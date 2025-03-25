@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from page.login_page import login_page
 from utils.data_manipulation import filter_data, make_prediction, prediction_graph
 from utils.db_handler import DatabaseManager
 
