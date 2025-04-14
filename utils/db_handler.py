@@ -1,85 +1,244 @@
 import streamlit as st
-import psycopg2
-from psycopg2 import sql
+from sqlalchemy import create_engine, URL, text
+import uuid
 import pandas as pd
 import bcrypt
 
-DB_CONFIG = st.secrets["postgresql"]  # Ensure your Streamlit secrets file has a "database" section
+# Load configuration from Streamlit secrets
+DB_CONFIG = st.secrets["postgresql"]
+
+# Create the database URL
+db_url = URL.create(
+    drivername="postgresql+psycopg2",
+    username=DB_CONFIG["user"],
+    password=DB_CONFIG["password"],
+    host=DB_CONFIG["host"],
+    port=DB_CONFIG["port"],
+    database=DB_CONFIG["database"],
+)
+
+# Create the engine with a connection pool
+engine = create_engine(
+    db_url,
+    pool_size=10,
+    max_overflow=5,
+    pool_timeout=30,
+    pool_recycle=1800,
+    echo=True  # Optional: show queries in the console
+)
 
 class DatabaseManager:
     @staticmethod
     @st.cache_data
     def load_data():
+        """Load data from the database."""
         try:
-            with psycopg2.connect(**DB_CONFIG) as conn:
-                query = "SELECT * FROM property_sales;"  # Replace 'property_sales' with your actual table name
+            with engine.connect() as conn:
+                query = text("SELECT * FROM property_sales;")
                 df = pd.read_sql_query(query, conn)
                 return df
-
-        except psycopg2.OperationalError as e:
-            print(f"Database connection failed: {e}")
+        except Exception as e:
+            print(f"Failed to connect to the database: {e}")
             return None
 
-    def insert_sale(entry):
-        with psycopg2.connect(**DB_CONFIG) as conn:
-            query = """INSERT INTO property_sales (datesold, price, postcode, property_type, bedrooms) 
-                       VALUES (%s, %s, %s, %s, %s)"""
-            with conn.cursor() as cursor:
-                cursor.execute(query, (entry["date_sold"], entry["price"], entry["postcode"], entry["property_type"], entry["bedrooms"]))
-                conn.commit()
-
-    def verify_duplicate_user(email):
-        with psycopg2.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT COUNT(*) FROM users WHERE email = %s", (email,))
-                count = cursor.fetchone()[0]
-            return count > 0
+    @staticmethod
+    def get_user_id(email):
+        try:
+            with engine.connect() as conn:
+                query = text("SELECT id FROM users WHERE email = :email")
+                result = conn.execute(query, {"email": email}).fetchone()
+                if result:
+                    return result[0] 
+                else:
+                    raise ValueError("No user with that email")
+        except Exception as e:
+            print(f"Error checking finding user id: {e}")
+            return None
         
-    def authenticate_user(email, password):
-        conn = psycopg2.connect(**DB_CONFIG)
-        with conn.cursor() as cursor:
-        
-            # Retrieve the stored hashed password for the user
-            cursor.execute("SELECT hash_password FROM users WHERE email = %s", (email,))
-            stored_hashed_password = cursor.fetchone()
-        
-            conn.close()
-
-        # Check if a user with the given email was found
-        if stored_hashed_password is None:
-            return False
     
-        stored_hashed_password = stored_hashed_password[0]  # Extract the hash from the tuple
+    @staticmethod
+    def get_user_role(email):
+        """Get the role of the user with the given email."""
+        try:
+            with engine.connect() as conn:
+                query = text("SELECT role FROM users WHERE email = :email")
+                result = conn.execute(query, {"email": email}).fetchone()
+                if result:
+                    return result[0]
+                else:
+                    return "guest"  # Rol por defecto si no se encuentra
+        except Exception as e:
+            print(f"Error retrieving user role: {e}")
+            return "guest"
 
-        # Compare the provided password with the stored hashed password
-        return bcrypt.checkpw(password.encode(), stored_hashed_password.encode())
 
-    def save_user(email, password, extra_input_params):
-        with psycopg2.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cursor:
-            
-                # Hash the password before saving
-                hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode('utf-8')
-                
-                # Base columns and values
-                columns = ['email', 'hash_password']
-                values = [email, hashed_password]
 
-                # Add extra input params to the columns and values lists
-                for key in extra_input_params.keys():
-                    columns.append(key)
-                    values.append(st.session_state[f'{key}'])
-                
-                # Dynamically build the SQL query
-                columns_str = ', '.join(columns)
-                placeholders = ', '.join(['%s'] * len(values))
-                
-                query = sql.SQL("INSERT INTO users ({}) VALUES ({})").format(
-                    sql.SQL(columns_str),
-                    sql.SQL(placeholders))
-                
-                cursor.execute(query, values)
+    @staticmethod
+    def insert_sale(entry):
+        """Insert a record into the property_sales table."""
+        try:
+            with engine.connect() as conn:
+                user_id = DatabaseManager.get_user_id(entry["user_email"])
+                del entry["user_email"]
+                entry["user_id"] = user_id
+                query = text("""
+                    INSERT INTO property_sales (datesold, price, postcode, property_type, bedrooms, user_id) 
+                    VALUES (:date_sold, :price, :postcode, :property_type, :bedrooms, :user_id)
+                """)
+                conn.execute(query, entry)
                 conn.commit()
+                print("✅ Sale successfully inserted.")
+                DatabaseManager.load_data.clear()
+                return True
+        except Exception as e:
+            print(f"Failed to insert sale: {e}")
+            return False
+
+    @staticmethod
+    def get_sales_by_user(user_id):
+        try:
+            with engine.connect() as conn:
+                query = text("""
+                    SELECT datesold, price, postcode, property_type, bedrooms 
+                    FROM property_sales 
+                    WHERE user_id = :user_id
+                    ORDER BY datesold DESC
+                """)
+                result = conn.execute(query, {"user_id": user_id})
+                sales = result.fetchall()
+
+                # Convertir a DataFrame
+                if sales:
+                    df = pd.DataFrame(sales, columns=["Date Sold", "Price", "Postcode", "Property Type", "Bedrooms"])
+                    return df
+                else:
+                    return pd.DataFrame()  # Devuelve un DataFrame vacío si no hay datos
+        except Exception as e:
+            print(f"Error retrieving sales data: {e}")
+            return pd.DataFrame()
         
+    @staticmethod
+    def delete_sale(date_sold, price, user_id):
+        try:
+            with engine.connect() as conn:
+                query = text("""
+                    DELETE FROM property_sales 
+                    WHERE datesold = :date_sold AND price = :price AND user_id = :user_id
+                """)
+                conn.execute(query, {"date_sold": date_sold, "price": price, "user_id": user_id})
+                conn.commit()
+                DatabaseManager.load_data.clear()
+                return True
+        except Exception as e:
+            print(f"Error deleting sale: {e}")
+            return False
+
+
+
+
+    @staticmethod
+    def verify_duplicate_user(email):
+        """Check if a user already exists in the database."""
+        try:
+            with engine.connect() as conn:
+                query = text("SELECT COUNT(*) FROM users WHERE email = :email")
+                result = conn.execute(query, {"email": email}).scalar()
+                return result > 0
+        except Exception as e:
+            print(f"Error checking for duplicate user: {e}")
+            return False
+
+    @staticmethod
+    def authenticate_user(email, password):
+        """Authenticate a user by comparing the provided password with the stored hash."""
+        try:
+            with engine.connect() as conn:
+                query = text("SELECT hashed_password FROM users WHERE email = :email")
+                result = conn.execute(query, {"email": email}).fetchone()
+
+            if not result:
+                return False  # User not found
+
+            stored_hashed_password = result[0]
+
+            # Compare provided password with stored hash
+            return bcrypt.checkpw(password.encode(), stored_hashed_password.encode())
+        except Exception as e:
+            print(f"Authentication error: {e}")
+            return False
+
+    @staticmethod
+    def save_user(email, password, role, extra_input_params):
+        """Save a new user in the database with a role."""
+        try:
+            with engine.connect() as conn:
+                # Hash the password before storing it
+                hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode("utf-8")
+
+                # Construct the SQL query dynamically
+                columns = ["id", "email", "hashed_password", "role"]  # 
+                values = {
+                    "id": uuid.uuid4(),
+                    "email": email,
+                    "hashed_password": hashed_password,
+                    "role": role  
+                }
+
+                for key, value in extra_input_params.items():
+                    columns.append(key)
+                    values[key] = value
+
+                columns_str = ", ".join(columns)
+                placeholders = ", ".join([f":{key}" for key in values.keys()])
+
+                query = text(f"INSERT INTO users ({columns_str}) VALUES ({placeholders})")
+
+                conn.execute(query, values)
+                conn.commit()
+                print("User successfully registered.")
+                DatabaseManager.load_data.clear()
+                return True
+        except Exception as e:
+            print(f"Failed to save user: {e}")
+            return False
         
+
+    @staticmethod
+    def get_all_users():
+        """Retrieve all users with their emails and roles."""
+        try:
+            with engine.connect() as conn:
+                query = text("SELECT email, role FROM users ORDER BY email ASC")
+                result = conn.execute(query).fetchall()
+
+                if result:
+                    df = pd.DataFrame(result, columns=["email", "role"])
+                    return df
+                else:
+                    return pd.DataFrame(columns=["email", "role"])  # Retorna DataFrame vacío si no hay usuarios
+        except Exception as e:
+            print(f"Error retrieving users: {e}")
+            return pd.DataFrame(columns=["email", "role"])
         
+
+    @staticmethod
+    def set_user_role(email, new_role):
+        """Change the role of a user."""
+        try:
+            with engine.connect() as conn:
+                query = text("UPDATE users SET role = :role WHERE email = :email")
+                result = conn.execute(query, {"role": new_role, "email": email})
+                
+                if result.rowcount > 0:
+                    conn.commit()
+                    print(f"User {email}'s role has been updated to {new_role}.")
+                    DatabaseManager.load_data.clear()
+                    return True
+                else:
+                    print(f"User with email {email} not found.")
+                    return False
+        except Exception as e:
+            print(f"Error updating user role: {e}")
+            return False
+
+

@@ -5,7 +5,7 @@ import time
 # Pages
 def login_page(guest_mode=False):
     with st.empty().container(border=True):
-        col1, _, col2 = st.columns([10,1,10])
+        col1, _, col2 = st.columns([10, 1, 10])
         
         with col1:
             st.write("")
@@ -25,6 +25,13 @@ def login_page(guest_mode=False):
                     st.error("Please provide email and password")
                 elif DatabaseManager.authenticate_user(email, password):
                     st.session_state['authenticated'] = True
+                    st.session_state['email'] = email
+                    st.session_state['guest_mode'] = False
+                    
+                    # ✅ Obtener y guardar el rol del usuario
+                    user_role = DatabaseManager.get_user_role(email)
+                    st.session_state['role'] = user_role
+                    
                     st.session_state['page'] = 'app'
                     st.rerun()
                 else:
@@ -38,5 +45,6 @@ def login_page(guest_mode=False):
                 if st.button("Continue as Guest"):
                     st.session_state['guest_mode'] = True
                     st.session_state['authenticated'] = True
+                    st.session_state['role'] = "guest"  # Rol por defecto para invitados
                     st.session_state['page'] = 'app'
                     st.rerun()

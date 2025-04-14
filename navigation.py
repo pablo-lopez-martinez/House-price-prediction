@@ -7,8 +7,8 @@ from utils.init_session import init_session, reset_session
 init_session()
 
 st.session_state['extra_input_params'] = {
-    'name':'text',
-    'surname':'text',
+    'Name':'text',
+    'Surname':'text',
 }
 for input_param in st.session_state['extra_input_params'].keys():
     if input_param not in st.session_state:
