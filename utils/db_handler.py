@@ -40,17 +40,28 @@ class DatabaseManager:
         except Exception as e:
             print(f"Failed to connect to the database: {e}")
             return None
-
+        
+    @staticmethod
+    def get_user_by_email(email):
+        """Get user details by email."""
+        try:
+            with engine.connect() as conn:
+                query = text("SELECT * FROM users WHERE email = :email")
+                result = conn.execute(query, {"email": email}).fetchone()
+                if result:
+                    result_dict = dict(result._mapping)  # Convert the row to a dictionary
+                    return result_dict
+                else:
+                    return None  # User not found
+        except Exception as e:
+            print(f"Error retrieving user by email: {e}")
+            return None
+        
     @staticmethod
     def get_user_id(email):
         try:
-            with engine.connect() as conn:
-                query = text("SELECT id FROM users WHERE email = :email")
-                result = conn.execute(query, {"email": email}).fetchone()
-                if result:
-                    return result[0] 
-                else:
-                    raise ValueError("No user with that email")
+            user = DatabaseManager.get_user_by_email(email)
+            return user["id"]
         except Exception as e:
             print(f"Error checking finding user id: {e}")
             return None
