@@ -3,9 +3,20 @@ from sqlalchemy import create_engine, URL, text
 import uuid
 import pandas as pd
 import bcrypt
+import os
 
 # Load configuration from Streamlit secrets
-DB_CONFIG = st.secrets["postgresql"]
+try:
+    DB_CONFIG = st.secrets["postgresql"]
+except FileNotFoundError:
+    # Fallback to environment variables if secrets are not available
+    DB_CONFIG = {
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
+        "host": os.getenv("DB_HOST"),
+        "port": os.getenv("DB_PORT"),
+        "database": os.getenv("DB_NAME"),
+    }
 
 # Create the database URL
 db_url = URL.create(
