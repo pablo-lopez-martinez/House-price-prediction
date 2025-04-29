@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import streamlit as st
-from utils.data_manipulation import filter_data, make_prediction
+from utils.data_manipulation import make_prediction
 import pandas as pd
 import os
 from jose import JWTError, jwt
