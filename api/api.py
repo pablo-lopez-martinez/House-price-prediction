@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import streamlit as st
 from utils.data_manipulation import filter_data, make_prediction
 import pandas as pd
+import os
 from jose import JWTError, jwt
 from utils.db_handler import DatabaseManager
 
@@ -13,7 +14,10 @@ from utils.db_handler import DatabaseManager
 app = FastAPI(title="Property Sales API", version="1.0")
 
 # JWT Config
-SECRET_KEY = st.secrets["api"]["key"]  # Generate a random secret key
+try:
+    SECRET_KEY = st.secrets["api"]["key"]  # Try to get the secret key from Streamlit secrets
+except FileNotFoundError:
+    SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  # Fallback to environment variable or default
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -253,5 +257,5 @@ def get_best_and_worst_months(
 
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn 
     uvicorn.run(app, host="0.0.0.0", port=8000)
