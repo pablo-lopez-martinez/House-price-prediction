@@ -219,11 +219,11 @@ class DatabaseManager:
         """Retrieve all users with their emails and roles."""
         try:
             with engine.connect() as conn:
-                query = text("SELECT email, role FROM users ORDER BY email ASC")
+                query = text("SELECT email, role, id FROM users ORDER BY email ASC")
                 result = conn.execute(query).fetchall()
 
                 if result:
-                    df = pd.DataFrame(result, columns=["email", "role"])
+                    df = pd.DataFrame(result, columns=["email", "role", "id"])
                     return df
                 else:
                     return pd.DataFrame(columns=["email", "role"])  # Retorna DataFrame vacío si no hay usuarios
