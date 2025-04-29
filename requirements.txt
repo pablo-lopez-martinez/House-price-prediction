@@ -11,3 +11,4 @@ uvicorn == 0.34.1
 python-jose == 3.4.0
 pydantic == 2.11.3
 email_validator == 2.2.0
+python-multipart == 0.0.20
