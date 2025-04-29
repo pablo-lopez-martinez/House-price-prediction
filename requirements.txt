@@ -6,3 +6,5 @@ prophet==1.1.6
 psycopg2-binary==2.9.10
 bcrypt==4.3.0
 sqlalchemy == 2.0.40
+fastapi == 0.115.12
+uvicorn == 0.34.1
