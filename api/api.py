@@ -146,8 +146,9 @@ def update_role(data: RoleUpdate, current_user: dict = Depends(get_current_user)
 # Sales routes
 @app.post("/sales", response_model=dict)
 def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current_user)):    
-    sale.user_id = current_user["id"]
-    success = DatabaseManager.insert_sale(dict(sale))
+    sale = dict(sale)
+    sale["user_id"] = current_user["id"]
+    success = DatabaseManager.insert_sale(sale)
     if success:
         return {"message": "Sale inserted successfully"}
     raise HTTPException(status_code=500, detail="Failed to insert sale.")
