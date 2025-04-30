@@ -40,7 +40,6 @@ class RoleUpdate(BaseModel):
     new_role: str
 
 class SaleCreate(BaseModel):
-    user_email: EmailStr
     date_sold: str
     price: float
     postcode: str
@@ -146,11 +145,8 @@ def update_role(data: RoleUpdate, current_user: dict = Depends(get_current_user)
 
 # Sales routes
 @app.post("/sales", response_model=dict)
-def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current_user)):
-    # Verificar si el usuario está creando una venta con su propio email o es admin
-    if current_user["email"] != sale.user_email and current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="No puedes crear ventas para otros usuarios")
-        
+def create_sale(sale: SaleCreate, current_user: dict = Depends(get_current_user)):    
+    sale.user_id = current_user["id"]
     success = DatabaseManager.insert_sale(dict(sale))
     if success:
         return {"message": "Sale inserted successfully"}

@@ -100,9 +100,6 @@ class DatabaseManager:
         """Insert a record into the property_sales table."""
         try:
             with engine.connect() as conn:
-                user_id = DatabaseManager.get_user_id(entry["user_email"])
-                del entry["user_email"]
-                entry["user_id"] = user_id
                 query = text("""
                     INSERT INTO property_sales (datesold, price, postcode, property_type, bedrooms, user_id) 
                     VALUES (:date_sold, :price, :postcode, :property_type, :bedrooms, :user_id)
