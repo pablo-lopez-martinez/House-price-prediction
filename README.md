@@ -113,12 +113,25 @@ Follow these steps to deploy the application locally:
         user_id UUID REFERENCES users(id)
     );
 
-4. Run the Streamlit App
+4. Configure Environment Variables: Create .streamlit/secrets.toml file or set environment variables for database access:
+
+    ```bash
+    [postgresql]
+    user = "your_db_user"
+    password = "your_db_password"
+    host = "localhost"
+    port = "5432"
+    database = "your_db_name"
+    
+    [api]
+    key = "your_secret_key_for_jwt"
+
+5. Run the Streamlit App
 
     ```bash
     streamlit run streamlit_app.py
 
-5. Run the FastAPI Server (optional, for API access):
+6. Run the FastAPI Server (optional, for API access):
 
     ```bash
     uvicorn api:app --host 0.0.0.0 --port 8000
