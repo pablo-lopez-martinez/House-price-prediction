@@ -93,7 +93,7 @@ Follow these steps to deploy the application locally:
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
 
-3. **Create a PostgreSQL database and ensure it has tables for users and property_sales.
+3. Create a PostgreSQL database and ensure it has tables for users and property_sales.
 
     ```bash
     CREATE TABLE users (
