@@ -1,58 +1,72 @@
 # Property Sales Prediction App
 
 ## Overview
+This application is a web-based tool built with Streamlit that predicts property prices based on historical sales data. It allows users to filter data by property type and number of bedrooms, visualize predictions through interactive charts, and manage property sales records. The app includes a secure user authentication system and role-based access control, enabling different levels of interaction for users, admins, analysts, and guests. Additionally, a FastAPI-based API provides programmatic access to data and predictions, secured with JWT authentication. The application is deployed on Streamlit Cloud and uses a Neon PostgreSQL database for data storage.
 
-This application is a web-based tool built with Streamlit that predicts property prices based on historical sales data. It allows users to filter data by property type and number of bedrooms, visualize predictions, and manage property sales records. The app also includes an API for programmatic access to the data and predictions, with user authentication and role-based access control.
+## Features
+- **Price Prediction**:
+  - Utilizes the **Prophet** forecasting model to predict future property prices based on historical sales data.
+  - Users can select a future year (up to 20 years from the current date) to forecast prices.
+  - Offers customizable time granularity (Month, Quarter, Year) for predictions, allowing users to analyze trends at different time scales.
+  - Displays the best and worst months to buy or sell, along with estimated prices and potential savings or profit differences. For example, when buying, the app highlights the month with the lowest predicted price and calculates savings compared to the highest price month.
+  - Predictions include confidence intervals (lowest and highest price estimates) to provide a range of expected values.
 
-### Features
+- **Data Filtering**:
+  - Users can filter property sales data by **property type** (House, Unit) and **number of bedrooms** (1 to 5, depending on property type).
+  - The filtering process aggregates data by averaging prices for the selected criteria and interpolates missing values to ensure a continuous time series, enhancing prediction accuracy.
+  - Supports dynamic filtering: for example, selecting "House" limits bedroom options to 2–5, while "Unit" limits them to 1–3, reflecting typical property configurations.
 
-- **Price Prediction:** Predict future property prices using the Prophet forecasting model, with customizable granularity (Month, Quarter, Year).
+- **Visualization**:
+  - Generates interactive line charts using **Altair** to display historical and predicted property prices.
+  - Historical data is shown in red, and future predictions in yellow, with a light blue shaded area representing the confidence interval for predicted prices.
+  - Users can adjust the time granularity (Month, Quarter, Year) of the charts, with appropriate date formatting (e.g., "Jan 2023" for months, "2023-Q1" for quarters).
+  - Charts include tooltips for precise data inspection, showing the date, price, and whether the data is historical or predicted.
 
-- **Data Filtering:** Filter property sales data by property type (House, Unit) and number of bedrooms.
+- **User Authentication**:
+  - Secure user registration and login system using **bcrypt** for password hashing.
+  - Validates email formats during signup and checks for duplicate users to prevent multiple registrations with the same email.
+  - Supports guest access, allowing unauthenticated users to view predictions and charts without modifying data.
+  - Includes a streamlined login interface with error handling for invalid credentials or incomplete forms.
 
-- **Visualization:** Interactive charts using Altair to display historical and predicted property prices with confidence intervals.
+- **Role-Based Access Control**:
+  - **Users**: Can add new property sale records (e.g., date sold, price, postcode, property type, bedrooms) and view or delete their own records. The interface displays a table of their sales history with options to delete entries.
+  - **Admins**: Have full control over user management, including viewing all users, updating their roles (e.g., to "user," "analyst," or "admin"), and deleting users. This is accessible via a dedicated admin panel.
+  - **Analysts**: Can export the entire property sales dataset as a CSV file for further analysis, with sensitive user IDs removed from the export.
+  - **Guests**: Can explore predictions and visualizations but are restricted from adding, modifying, or deleting data.
 
-- **User Authentication:** Secure user registration and login with bcrypt password hashing.
+- **Sales Management**:
+  - Authenticated users can submit new property sale records through a form that validates inputs (e.g., numeric postcode, price between $10,000 and $10,000,000, valid date range).
+  - Users can delete their own sale records directly from the sales history table, with changes immediately reflected in the database and predictions.
+  - All data modifications (additions and deletions) clear relevant caches to ensure predictions are updated with the latest data.
 
-- **Role-Based Access Control:**
+- **API**:
+  - A **FastAPI**-based API provides programmatic access to user management, sales data, and price predictions.
+  - Endpoints include:
+    - `/register`: Create new users.
+    - `/login`: Authenticate users and issue JWT tokens.
+    - `/users`: Retrieve all users (admin-only).
+    - `/sales`: Manage sales data, including filtering by date range or user ID.
+    - `/predict/months`: Get the best and worst months to buy or sell for a given year.
+  - Secured with **JWT authentication**, ensuring only authorized users can access protected endpoints.
+  - Supports role-based restrictions, such as limiting non-admin users to their own sales data.
 
-  - **Users:** Add, view, and delete their own property sale records.
-
-  - **Admins:** Manage user roles and delete users.
-
-  - **Analysts:** Export sales data as CSV.
-
-  - **Guests:** View predictions without adding or modifying data.
-
-- **Sales Management:** Authenticated users can add and delete property sale records.
-
-- **API:** FastAPI-based API for managing users, sales, and predictions, secured with JWT authentication.
-
-- **Database Integration:** PostgreSQL database for storing user and sales data.
+- **Database Integration**:
+  - Uses a **Neon PostgreSQL** database to store user information (email, hashed password, role) and property sales data (date sold, price, postcode, property type, bedrooms, user ID).
+  - Employs **SQLAlchemy** for robust database interactions, including connection pooling for efficient query handling.
+  - Data is cached using Streamlit’s `@st.cache_data` to optimize performance for frequent queries.
 
 ## Technologies Used
-
-- **Python:** Core programming language.
-
-- **Streamlit:** Web interface for data visualization and user interaction.
-
-- **FastAPI:** Backend API for programmatic access.
-
-- **PostgreSQL:** Database for storing property sales and user data.
-
-- **SQLAlchemy:** ORM for database interactions.
-
-- **Pandas:** Data manipulation and analysis.
-
-- **Prophet:** Time-series forecasting for price predictions.
-
-- **Altair:** Interactive data visualizations.
-
-- **bcrypt:** Password hashing for secure authentication.
-
-- **JWT:** Token-based authentication for API security.
-
-- **Pyodide:** (Implied for potential browser-based execution, not explicitly used in code).
+- **Python**: Core programming language.
+- **Streamlit**: Web interface for data visualization and user interaction.
+- **FastAPI**: Backend API for programmatic access (requires separate deployment).
+- **PostgreSQL (Neon)**: Cloud-hosted database for storing property sales and user data.
+- **SQLAlchemy**: ORM for database interactions.
+- **Pandas**: Data manipulation and analysis.
+- **Prophet**: Time-series forecasting for price predictions.
+- **Altair**: Interactive data visualizations.
+- **bcrypt**: Password hashing for secure authentication.
+- **JWT**: Token-based authentication for API security.
+- **Pyodide**: (Implied for potential browser-based execution, not explicitly used in code).
 
 ## Data
 
